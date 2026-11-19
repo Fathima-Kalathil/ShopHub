@@ -1,0 +1,15 @@
+# Optional Render Blueprint: New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: shophub-api
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /up
+    envVars:
+      - key: DB_URL          # your Neon connection string (postgresql://...?sslmode=require)
+        sync: false
+      - key: FRONTEND_URL    # your Vercel site, e.g. https://shophub.vercel.app
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
