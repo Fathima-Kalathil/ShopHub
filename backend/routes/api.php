@@ -5,9 +5,23 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => response()->json(['name' => 'ShopHub API', 'status' => 'ok']));
+
+// One-time database setup: open /api/setup?key=<JWT_SECRET> after the first deploy.
+// Creates the tables and demo data. Safe to open again, nothing is duplicated.
+Route::get('/setup', function (Request $request) {
+    $secret = env('JWT_SECRET');
+    abort_if(!$secret || !hash_equals($secret, (string) $request->query('key')), 403, 'Invalid setup key');
+
+    Artisan::call('migrate', ['--force' => true]);
+    Artisan::call('db:seed', ['--force' => true]);
+
+    return response()->json(['message' => 'Database ready', 'log' => trim(Artisan::output())]);
+});
 
 // Public
 Route::post('/auth/register', [AuthController::class, 'register']);
