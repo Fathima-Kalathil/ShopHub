@@ -1,66 +1,87 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ShopHub: React + Laravel + Postgres e-commerce
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+- `backend/`  Laravel 12 REST API (PHP 8.2+), JWT auth (firebase/php-jwt), Eloquent, Postgres (Neon)
+- `frontend/` React 18 + Vite + Tailwind CSS + React Router
 
-## About Laravel
+Everything is hosted on Vercel's free plan as two projects: the API (`backend/`) and the site (`frontend/`).
+The database is a free Neon Postgres created from Vercel's Storage tab.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Features: product search/filter/sort, product detail with reviews, cart, checkout with mock payment,
+order history and cancellation, register/login with JWT, and an admin area with a sidebar:
+Dashboard (stats, latest orders, low stock), Products (add/edit/delete), Orders (status tabs, change status), Customers.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Run locally
+```bash
+# API (needs PHP 8.2+ with pdo_pgsql, Composer, and a Postgres database)
+cd backend
+cp .env.example .env          # set DB_* (or DB_URL) and JWT_SECRET
+composer install
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve             # http://localhost:8000
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+# Frontend
+cd frontend
+cp .env.example .env.local    # VITE_API_URL=http://localhost:8000/api
+npm install
+npm run dev                   # http://localhost:5173
+```
+Demo logins: `demo@shophub.com / Demo@123`, admin `admin@shophub.com / Admin@123`.
+Test cards: `4111 1111 1111 1111` succeeds, `4000 0000 0000 0000` is declined, any card ending `0000` has insufficient funds.
 
-## Learning Laravel
+## Deploy on Vercel (free)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. API project
+1. Vercel > Add New > Project > import this repo. Set **Root Directory** to `backend`. Leave the preset as Other.
+2. Environment Variables:
+   - `DB_URL`: your Neon connection string (Storage > shophub-db > Show secret > `DATABASE_URL_UNPOOLED`, value only)
+   - `JWT_SECRET`: a long random string
+   - `APP_KEY`: output of `php artisan key:generate --show` (looks like `base64:...`)
+3. Deploy.
+4. Open `https://<api-domain>/api/setup?key=<your JWT_SECRET>` once. It creates the tables and demo data.
+5. Check `https://<api-domain>/api/products`: you should see 10 products.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Use the project's production domain (Project > Domains). Deployment-specific URLs can sit behind Vercel's login page.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Frontend project
+1. Add New > Project > same repo, **Root Directory** `frontend`, preset Vite.
+2. Environment Variable: `VITE_API_URL` = `https://<api-domain>/api`
+3. Deploy.
 
-## Laravel Sponsors
+### 3. Allow the frontend to call the API (CORS)
+In the API project add `FRONTEND_URL` = your frontend URL (for example `https://shophub.vercel.app`, no trailing slash) and redeploy.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Alternative: create the tables from your computer
+Instead of the setup URL, put the same `DB_URL` in `backend/.env` and run `php artisan migrate --seed`.
 
-### Premium Partners
+## API
+| Method | Path | Auth |
+|---|---|---|
+| POST | /api/auth/register, /api/auth/login | no |
+| GET | /api/auth/me | JWT |
+| GET | /api/products?q=&category=&sort= | no |
+| GET | /api/products/{id} | no |
+| POST | /api/products/{id}/reviews | JWT |
+| POST, PUT, DELETE | /api/products, /api/products/{id} | admin |
+| GET, POST | /api/cart | JWT |
+| PUT, DELETE | /api/cart/{productId} | JWT |
+| GET, POST | /api/orders | JWT |
+| POST | /api/orders/{id}/pay, /api/orders/{id}/cancel | JWT |
+| GET | /api/admin/stats | admin |
+| GET | /api/admin/orders?status= | admin |
+| PUT | /api/admin/orders/{id} (change status) | admin |
+| GET | /api/admin/customers | admin |
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Where things live (Laravel)
+- `vercel.json` and `api/index.php`: Vercel PHP runtime setup
+- `routes/api.php` routes, `bootstrap/app.php` middleware aliases and JSON errors
+- `app/Http/Middleware/JwtAuth.php` and `AdminOnly.php`: auth and role check
+- `app/Http/Controllers/Api/*`: Auth, Product, Cart, Order, Admin
+- `app/Models/*`: Eloquent models and relationships
+- `database/migrations/*`, `database/seeders/DatabaseSeeder.php`
 
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Interview talking points
+- JWT auth with bcrypt-hashed passwords, custom middleware, role-based admin routes.
+- Order creation runs in a DB transaction that locks product rows, checks stock, and decrements it.
+- A failed payment cancels the order and restores stock, so inventory stays correct.
+- Laravel running serverless on Vercel with managed Postgres (Neon); React frontend deployed separately.
